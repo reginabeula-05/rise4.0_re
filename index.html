@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision Voyage To-Do</title>
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #13b8c7, #edf6f9, #83c5be);
+  background-size: 300% 300%;
+  animation: gradientShift 8s infinite;
+}
+
+@keyframes gradientShift {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+
+.container {
+  background: rgba(255,255,255,0.85);
+  padding: 25px;
+  border-radius: 20px;
+  width: 420px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+h2 {
+  text-align: center;
+  color: #06a3ca;
+}
+
+.input-group {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.input-group input {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #f0a1c2;
+  border-radius: 10px 0 0 10px;
+}
+
+.input-group button {
+  background: #d63384;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+}
+
+/* FILTER BUTTONS (REDUCED SIZE) */
+.filters {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.filters button {
+  flex: none;
+  margin: 0 4px;
+  padding: 6px 6px;
+  font-size: 13px;
+  border: none;
+  border-radius: 15px;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.filters button:nth-child(1) { background: #7baee8; }
+.filters button:nth-child(2) { background: #0ee7e7; }
+.filters button:nth-child(3) { background: #f5ce86; }
+
+.filters button:hover {
+  transform: scale(1.1);
+}
+
+.filters button.active {
+  box-shadow: 0 0 10px rgb(180, 222, 232);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  background: #fff0f5;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+}
+
+li.completed {
+  text-decoration: line-through;
+  color: gray;
+}
+
+.actions button {
+  margin-left: 5px;
+  border: none;
+  padding: 5px;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+}
+
+.edit { background: orange; }
+.complete { background: blue; }
+.delete { background: red; }
+
+footer {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>📝 Vision Voyage 📝</h2>
+
+  <div class="input-group">
+    <input type="text" id="taskInput" placeholder="Enter task...">
+    <button onclick="addTask()">Add</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button onclick="filterTasks('all')" class="active">All</button>
+    <button onclick="filterTasks('completed')">Completed</button>
+    <button onclick="filterTasks('pending')">Pending</button>
+  </div>
+
+  <ul id="taskList"></ul>
+
+  <footer>Stay organized 💪</footer>
+</div>
+
+<script>
+const taskInput = document.getElementById("taskInput");
+const taskList = document.getElementById("taskList");
+let currentFilter = "all";
+
+// ENTER KEY SUPPORT
+taskInput.addEventListener("keydown", function(event) {
+  if (event.key === "Enter") {
+    addTask();
+  }
+});
+
+// LOAD TASKS
+window.onload = function () {
+  let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+  tasks.forEach(task => {
+    renderTask(task.text, task.completed);
+  });
+
+  applyFilter();
+};
+
+// ADD TASK
+function addTask() {
+  let text = taskInput.value.trim();
+
+  if (text === "") {
+    alert("Enter task!");
+    return;
+  }
+
+  renderTask(text, false);
+  saveTasks();
+  applyFilter();
+  taskInput.value = "";
+}
+
+// RENDER TASK
+function renderTask(text, completed) {
+  const li = document.createElement("li");
+
+  if (completed) li.classList.add("completed");
+
+  li.innerHTML = `
+    <span>${text}</span>
+    <div class="actions">
+      <button class="edit" onclick="editTask(this)">✎</button>
+      <button class="complete" onclick="toggleComplete(this)">✔</button>
+      <button class="delete" onclick="deleteTask(this)">✖</button>
+    </div>
+  `;
+
+  taskList.appendChild(li);
+}
+
+// TOGGLE COMPLETE
+function toggleComplete(btn) {
+  const li = btn.closest("li");
+  li.classList.toggle("completed");
+  saveTasks();
+  applyFilter();
+}
+
+// DELETE
+function deleteTask(btn) {
+  btn.closest("li").remove();
+  saveTasks();
+}
+
+// EDIT
+function editTask(btn) {
+  const li = btn.closest("li");
+  const span = li.querySelector("span");
+
+  let newText = prompt("Edit task:", span.textContent);
+
+  if (newText && newText.trim() !== "") {
+    span.textContent = newText.trim();
+    saveTasks();
+  }
+}
+
+// SAVE
+function saveTasks() {
+  let tasks = [];
+
+  document.querySelectorAll("#taskList li").forEach(li => {
+    tasks.push({
+      text: li.querySelector("span").textContent,
+      completed: li.classList.contains("completed")
+    });
+  });
+
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+// FILTER
+function filterTasks(filter) {
+  currentFilter = filter;
+
+  document.querySelectorAll(".filters button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  event.target.classList.add("active");
+  applyFilter();
+}
+
+// APPLY FILTER
+function applyFilter() {
+  document.querySelectorAll("#taskList li").forEach(li => {
+    if (currentFilter === "completed") {
+      li.style.display = li.classList.contains("completed") ? "flex" : "none";
+    } else if (currentFilter === "pending") {
+      li.style.display = !li.classList.contains("completed") ? "flex" : "none";
+    } else {
+      li.style.display = "flex";
+    }
+  });
+}
+</script>
+
+</body>
+</html>
